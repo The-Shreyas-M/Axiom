@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+output/
+*.pyc
+*.log
+.env
+sample_attention_paper.pdf
+.ipynb_checkpoints/
+.gradio/

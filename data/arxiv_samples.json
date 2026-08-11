@@ -1,0 +1,74 @@
+{
+  "Natural Language Processing": [
+    "We present BERT, a bidirectional transformer encoder pre-trained on masked language modeling and next sentence prediction, which achieves state-of-the-art results on question answering, named entity recognition, and natural language inference benchmarks.",
+    "This paper introduces a neural machine translation system based on the transformer architecture with multi-head self-attention, achieving BLEU improvements over recurrent sequence-to-sequence models while training significantly faster.",
+    "We propose an extractive summarization framework that scores sentences using contextual word embeddings and a graph-based ranking algorithm, producing concise summaries of long documents.",
+    "We train large language models on trillions of tokens and study scaling laws relating model size, dataset size, and compute to downstream task performance including reasoning and code generation.",
+    "We introduce a tokenization-free approach to part-of-speech tagging and dependency parsing using character-level convolutional networks, reducing the need for language-specific preprocessing.",
+    "This work explores prompt-based few-shot learning, where a pretrained language model adapts to new tasks through natural language instructions and a small number of exemplars, without gradient updates.",
+    "We build a retrieval-augmented generation system that combines dense passage retrieval with a sequence-to-sequence model, allowing open-domain question answering to cite evidence passages.",
+    "We develop a multilingual embedding space aligned across 100 languages using aligned corpora, supporting zero-shot cross-lingual transfer for classification and retrieval tasks.",
+    "We evaluate sentiment analysis and aspect-based opinion mining using a hierarchical attention network over word and sentence encodings, improving accuracy on product review datasets.",
+    "We present a sequence labeling approach for named entity recognition combining bidirectional LSTM encoders with conditional random field decoders and subword embeddings."
+  ],
+  "Computer Vision": [
+    "We propose a deep convolutional neural network architecture with residual connections that achieves top-1 accuracy on ImageNet classification while remaining efficient to train.",
+    "We introduce a two-stage object detector that proposes candidate regions with a region proposal network and classifies them with fully connected layers, achieving real-time performance.",
+    "We present a U-Net style encoder-decoder with skip connections for biomedical image segmentation, producing pixel-wise masks from limited training data.",
+    "We train a vision transformer that applies self-attention directly to image patches, matching convolutional baselines on image classification without inductive biases.",
+    "We develop a generative adversarial network that synthesizes high-resolution photorealistic images with progressively growing generator and discriminator architectures.",
+    "We address monocular depth estimation and semantic segmentation with a shared multi-task encoder, demonstrating improved generalization across driving datasets.",
+    "We propose a contrastive self-supervised learning framework that learns image representations by maximizing agreement between augmented views, matching supervised transfer performance.",
+    "We present a face detection and recognition pipeline combining multitask cascaded convolutional networks with facial landmark alignment for unconstrained images.",
+    "We introduce a diffusion model for image generation that iteratively denoises samples from a learned noise schedule, outperforming GANs in fidelity metrics like FID.",
+    "We design an instance segmentation method that extends object detection with a mask branch, segmenting every object instance in an image in a single forward pass."
+  ],
+  "Machine Learning Theory": [
+    "We derive generalization bounds for neural networks via PAC-Bayesian analysis, relating sharpness of the loss landscape to expected risk on unseen data.",
+    "This paper proves convergence rates for stochastic gradient descent on smooth nonconvex objectives, establishing O(1/sqrt(T)) oracle complexity for finding stationary points.",
+    "We analyze the sample complexity of learning halfspaces under adversarial label noise, providing upper and lower bounds that match up to logarithmic factors.",
+    "We study the regularization effect of weight decay and dropout, showing equivalence between dropout and adaptive regularization in the variational Bayesian sense.",
+    "We establish uniform convergence bounds for kernel methods in reproducing kernel Hilbert spaces, linking the spectral decay of the kernel to statistical consistency.",
+    "We analyze implicit bias of gradient descent on overparameterized linear networks, showing convergence to minimum-norm solutions and margin maximization.",
+    "We prove that certain classes of neural networks with random features approximate kernels in the infinite-width limit, connecting deep learning to kernel theory.",
+    "We investigate the information-theoretic limits of active learning, deriving query complexity bounds for disagreement-based active learning strategies.",
+    "We provide a tight analysis of the regret of UCB-style bandit algorithms under sub-Gaussian reward distributions, matching the lower bound up to constants.",
+    "We develop a framework for differential privacy in empirical risk minimization, proving utility guarantees for objective perturbation and output perturbation mechanisms."
+  ],
+  "Reinforcement Learning": [
+    "We introduce deep Q-learning with experience replay and target networks, enabling agents to play Atari games directly from pixel observations and a scalar reward.",
+    "We propose Proximal Policy Optimization, a policy gradient method that clips importance ratios to keep updates within a trust region, improving stability and sample efficiency.",
+    "We present an actor-critic algorithm that estimates advantage functions with generalized advantage estimation, achieving strong results on continuous control benchmarks like MuJoCo.",
+    "We model sequential decision making as a Markov decision process and study exploration strategies based on count-based intrinsic rewards and uncertainty estimation.",
+    "We train an agent for a two-player zero-sum game using self-play with value networks and policy improvement, mastering the game beyond human world champion level.",
+    "We develop a model-based reinforcement learning agent that learns a latent dynamics model and plans with imagination, outperforming model-free baselines on vision-based tasks.",
+    "We study off-policy evaluation in reinforcement learning, proposing importance sampling estimators with variance reduction for evaluating policies from logged data.",
+    "We introduce a reward shaping methodology that accelerates learning by providing dense potential-based shaping rewards without altering the optimal policy.",
+    "We propose hierarchical reinforcement learning with a manager and worker structure, where high-level policies set subgoals that low-level policies learn to achieve.",
+    "We address multi-agent reinforcement learning with centralized training and decentralized execution, enabling cooperative policies for tasks requiring coordination."
+  ],
+  "Systems and Networking": [
+    "We present a distributed key-value store that achieves high availability with quorum-based replication, consistent hashing, and failure detection in a large cluster.",
+    "We design a scheduling system for data center workloads that combines bin packing with fairness, reducing completion times for latency-sensitive jobs.",
+    "We evaluate congestion control algorithms for high-bandwidth networks, comparing loss-based and delay-based approaches under dynamic link conditions.",
+    "We build a columnar storage engine with late materialization and compression, accelerating analytical queries on petabyte-scale datasets.",
+    "We propose a GPU-accelerated graph processing framework that partitions graphs to minimize communication overhead across cluster nodes.",
+    "We develop a just-in-time compiler for a dynamic language that specializes bytecode based on observed types, delivering near-native execution speeds.",
+    "We implement a reliable transport protocol with forward error correction and packet retransmission to improve throughput over lossy wireless links.",
+    "We introduce a container orchestration strategy that migrates stateful workloads across nodes with minimal downtime and consistent snapshots.",
+    "We design a caching layer for web workloads that uses machine-learned eviction policies, improving hit rates compared to LRU baselines.",
+    "We present a fault-tolerant consensus protocol with leader election and log replication, tolerating crash failures under the partial synchronous model."
+  ],
+  "Other": [
+    "We present a usability study of voice assistants, analyzing how privacy concerns and feedback design affect user trust and adoption in smart home settings.",
+    "We propose a cryptographic protocol for secure multiparty computation that keeps inputs private while enabling joint statistical analysis across organizations.",
+    "We develop a machine learning model for protein structure prediction that combines multiple sequence alignments with geometric attention over amino acid residues.",
+    "We analyze fairness in algorithmic decision making, proposing metrics to detect disparate impact in lending and hiring systems built on predictive models.",
+    "We design an intrusion detection system that monitors network flows with anomaly detection, reducing false positives via ensemble classifiers.",
+    "We apply deep learning to drug discovery, screening molecular libraries with graph neural networks that predict binding affinity of candidate compounds.",
+    "We evaluate a recommender system for online education, personalizing course sequences based on learner engagement and prior knowledge assessment.",
+    "We build a speech recognition front-end that separates overlapping speakers using neural beamforming, improving accuracy in noisy meeting rooms.",
+    "We propose a blockchain-based provenance system that records supply chain events with tamper-evident logs and selective disclosure of business data.",
+    "We study epidemiological models of disease spread that incorporate mobility data from cellular networks, improving forecasts of outbreak trajectories."
+  ]
+}
