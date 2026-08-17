@@ -1,11 +1,9 @@
-"""Pipeline: PDF(s) -> parse -> classify -> caption figures -> embed -> index.
-
-All state (retriever, models, figures) lives in a module-level SessionStore so
-the Gradio app can process papers, then answer questions against the index.
-"""
+"""Pipeline: PDF(s) -> parse -> classify -> caption -> embed -> index."""
 
 from __future__ import annotations
 
+import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -36,7 +34,8 @@ class SessionStore:
     def __init__(self):
         self.retriever = Retriever()
         self.papers: list[ProcessedPaper] = []
-        self.paper_figures: list[tuple] = []  # (image_path, caption, label, paper_name)
+        self.paper_figures: list[tuple] = []
+        self._processed_sources: dict[str, ProcessedPaper] = {}
         self._embedder: Optional[Embedder] = None
         self._classifier: Optional[PaperClassifier] = None
         self._llm: Optional[ResearchLLM] = None
@@ -45,7 +44,6 @@ class SessionStore:
         self._ocr = OCR()
         self._layout = LayoutAnalyzer()
 
-    # -- lazy models -------------------------------------------------------
     @property
     def embedder(self) -> Embedder:
         if self._embedder is None:
@@ -56,7 +54,6 @@ class SessionStore:
     def classifier(self) -> PaperClassifier:
         if self._classifier is None:
             self._classifier = PaperClassifier()
-            self._classifier.train()
         return self._classifier
 
     @property
@@ -71,62 +68,58 @@ class SessionStore:
             self._captioner = FigureCaptioner(self._provider)
         return self._captioner
 
-    # -- pipeline ----------------------------------------------------------
-    def process_pdf(self, path: str, use_ocr: bool = False, caption_figures: bool = True,
-                    progress=None) -> ProcessedPaper:
+    def process_pdf(self, path: str, use_ocr: bool = False, progress=None) -> ProcessedPaper:
         def tick(msg: str):
             if progress is not None:
                 progress(0.0, desc=msg)
 
-        tick("Parsing PDF (text, tables, figures)...")
+        key = os.path.normpath(os.path.abspath(path))
+        if key in self._processed_sources:
+            tick("Already processed")
+            return self._processed_sources[key]
+
+        tick("Parsing PDF...")
         paper = parse_pdf(path)
 
         ocr_text_pages: list[int] = []
         if use_ocr and paper.scanned_pages:
             if not self._ocr.available:
-                raise RuntimeError(
-                    "OCR requested but no OCR engine is installed. Install one with "
-                    "`pip install -r requirements-ocr.txt` (paddleocr is recommended, "
-                    "easyocr as fallback)."
-                )
+                raise RuntimeError("OCR requested but no engine installed.")
             if self._layout.available:
-                tick(f"OCR + layout analysis on {len(paper.scanned_pages)} scanned page(s)...")
+                tick(f"OCR + layout on {len(paper.scanned_pages)} page(s)...")
                 try:
                     layouts = self._layout.analyze(paper.path, paper.scanned_pages)
                     ocr_text_pages = apply_layout(paper, layouts)
                     missing = [pno for pno in paper.scanned_pages if pno not in ocr_text_pages]
                     if missing:
-                        tick(f"OCR fallback for {len(missing)} page(s)...")
                         for pno, text in self._ocr.ocr_pages(paper.path, missing).items():
                             if text:
                                 ocr_text_pages.append(pno)
                                 paper.pages[pno - 1].text = text
-                except Exception as exc:
-                    tick(f"Layout analysis failed ({exc}); using OCR text only")
+                except Exception:
                     for pno, text in self._ocr.ocr_pages(paper.path, paper.scanned_pages).items():
                         if text:
                             ocr_text_pages.append(pno)
                             paper.pages[pno - 1].text = text
             else:
-                tick(f"OCR on {len(paper.scanned_pages)} scanned page(s)...")
                 for pno, text in self._ocr.ocr_pages(paper.path, paper.scanned_pages).items():
                     if text:
                         ocr_text_pages.append(pno)
                         paper.pages[pno - 1].text = text
 
-        tick("Classifying paper (stemming + lemmatization)...")
-        classification = self.classifier.predict_top3(paper.full_text[:CLASSIFY_PREFIX_CHARS])
+        tick("Classifying & captioning figures...")
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            cls_future = pool.submit(
+                self.classifier.predict_top3, paper.full_text[:CLASSIFY_PREFIX_CHARS]
+            )
+            cap_future = None
+            if paper.figures:
+                cap_future = pool.submit(self.captioner.caption_paper, paper.figures)
 
-        captions: dict[int, str] = {}
-        if caption_figures and paper.figures:
-            try:
-                tick(f"Captioning up to {len(paper.figures)} figures with vision model...")
-                captions = self.captioner.caption_paper(paper.figures)
-            except Exception as exc:
-                captions = {f.number: f.caption or f.label for f in paper.figures}
-                tick(f"Figure captioning skipped: {exc}")
+            classification = cls_future.result()
+            captions = cap_future.result() if cap_future else {}
 
-        tick("Chunking + embedding + indexing (FAISS)...")
+        tick("Embedding & indexing...")
         self._index_paper(paper, captions)
 
         processed = ProcessedPaper(
@@ -139,7 +132,17 @@ class SessionStore:
                 (f.image_path, captions.get(f.number, f.caption or f.label),
                  f.label or f"Fig. {f.number}", paper.name)
             )
+        self._processed_sources[key] = processed
         return processed
+
+    def is_processed(self, path: str) -> bool:
+        return os.path.normpath(os.path.abspath(path)) in self._processed_sources
+
+    def reset(self) -> None:
+        self.retriever = Retriever()
+        self.papers = []
+        self.paper_figures = []
+        self._processed_sources = {}
 
     def _index_paper(self, paper: Paper, captions: dict[int, str]) -> None:
         texts: list[str] = []
@@ -159,7 +162,6 @@ class SessionStore:
         vectors = self.embedder.embed_texts(texts)
         self.retriever.add(vectors, meta)
 
-    # -- queries -----------------------------------------------------------
     def answer(self, question: str, k: int = 6) -> tuple[str, list]:
         hits = self.retriever.search(self.embedder.embed_query(question), k=k)
         answer = self.llm.answer(question, hits)
@@ -174,12 +176,10 @@ class SessionStore:
             top3 = ", ".join(f"{c} ({p:.0%})" for c, p in processed.classification)
             lines.append(
                 f"**{paper.name}**  \n"
-                f"- Predicted category: **{top[0]}** ({top[1]:.0%} confidence)  \n"
-                f"- Top 3: {top3}  \n"
-                f"- {paper.stats['pages']} pages · {len(self.retriever)} indexed chunks · "
+                f"- Category: **{top[0]}** ({top[1]:.0%}) | Top 3: {top3}  \n"
+                f"- {paper.stats['pages']} pages · {len(self.retriever)} chunks · "
                 f"{paper.stats['tables']} tables · {paper.stats['figures']} figures  \n"
-                f"- Scanned pages: {paper.stats['scanned_pages']} · "
-                f"OCR applied: {len(processed.ocr_text_pages)}  \n"
-                f"- Figures captioned: {sum(1 for c in processed.captions.values() if c and not c.startswith('[Caption'))}"
+                f"- OCR: {len(processed.ocr_text_pages)} pages · "
+                f"Captioned: {sum(1 for c in processed.captions.values() if c and not c.startswith('[Caption'))}"
             )
         return "\n\n".join(lines) if lines else "_No papers processed yet._"

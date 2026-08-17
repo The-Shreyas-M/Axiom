@@ -46,8 +46,9 @@ PDF
 | `retriever.py` | FAISS index with citation metadata |
 | `llm.py` | Citation-aware summaries and RAG answers |
 | `vision.py` | Figure captioning + figure Q&A via vision model |
-| `providers.py` | LLM provider factory (Gemini / Ollama) |
+| `providers.py` | LLM provider factory (NVIDIA / Gemini / Ollama) |
 | `gemini_provider.py` | Google Gemini text + vision client (Interactions API) |
+| `nvidia_nim.py` | NVIDIA NIM text + vision client (OpenAI-compatible API, model fallback) |
 | `ollama_llm.py` | Local Ollama text + vision client |
 | `data/arxiv_samples.json` | Training data for the classifier |
 | `requirements.txt` | Base dependencies |
@@ -80,14 +81,16 @@ The locked stack (paddleocr 2.9.1 + paddlepaddle-gpu 2.6.2 + `nvidia-cudnn-cu12`
 Create a `.env` in the project root:
 
 ```
-GEMINI_API_KEY=your_key_here
+LLM_PROVIDER=nvidia
+NVIDIA_API_KEY=your_key_here
 ```
 
-A free key: <https://aistudio.google.com/apikey>
+A free NVIDIA key: <https://build.nvidia.com>
 
 - No key set → falls back to local **Ollama** (`ollama serve`, e.g. `ollama pull gemma3:4b`).
-- `LLM_PROVIDER=gemini` or `LLM_PROVIDER=ollama` overrides auto-detection.
-- `LLM_MODEL` and `OLLAMA_BASE_URL` override model / server.
+- `LLM_PROVIDER=gemini` uses the Gemini API (`GEMINI_API_KEY`, <https://aistudio.google.com/apikey>).
+- `LLM_PROVIDER=nvidia` uses NVIDIA NIM (`NVIDIA_API_KEY`) — recommended, with automatic model fallback when a model is busy/errors.
+- Unset provider → auto: **nvidia** if an NVIDIA key exists, else gemini if `GEMINI_API_KEY` set, else ollama.
 
 ### Run
 
@@ -102,10 +105,11 @@ Environment variables:
 | Var | Default | Purpose |
 | --- | --- | --- |
 | `GRADIO_SHARE` | `false` | `true` exposes a public Gradio share link |
-| `LLM_PROVIDER` | auto | `gemini` or `ollama` |
+| `LLM_PROVIDER` | `ollama` | `ollama`, `gemini` or `nvidia` |
+| `LLM_MODEL` | `llama3.2:3b` | Ollama model name (change to match your installed model) |
 | `GEMINI_API_KEY` | — | Gemini key (`.env` or env) |
 | `GEMINI_MODEL` | `gemini-3.6-flash` | Gemini model name |
-| `LLM_MODEL` | `gemma3:4b` | Ollama model name |
+| `LLM_MODEL` | `gemma3:4b` | Ollama model name (default) |
 | `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama server |
 
 ## Docker

@@ -1,12 +1,13 @@
-"""Paper classifier: NLTK stemming + lemmatization -> TF-IDF -> Logistic Regression.
+"""Paper classifier: TF-IDF + Logistic Regression on arXiv abstracts.
 
-Trained on bundled arXiv abstract samples (data/arxiv_samples.json) at first use.
+Cached to disk after first training so subsequent loads are instant.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import pickle
 import string
 from typing import Optional
 
@@ -16,12 +17,11 @@ from sklearn.pipeline import Pipeline
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(_BASE_DIR, "data", "arxiv_samples.json")
-
-_NLTK_RESOURCES = ("punkt_tab", "wordnet", "omw-1.4", "stopwords")
+CACHE_PATH = os.path.join(_BASE_DIR, "data", "classifier_cache.pkl")
 
 
 class PaperClassifier:
-    """Stem + lemmatize tokenizer with TF-IDF + logistic regression."""
+    """TF-IDF + logistic regression classifier with disk cache."""
 
     def __init__(self, data_path: str = DATA_PATH):
         self._ready = False
@@ -29,11 +29,30 @@ class PaperClassifier:
         self.pipeline: Optional[Pipeline] = None
         self.categories: list[str] = []
 
-    # -- NLTK internals ----------------------------------------------------
-    def _ensure_nltk(self) -> None:
-        import nltk
+    def _load_cache(self) -> bool:
+        if not os.path.exists(CACHE_PATH):
+            return False
+        try:
+            with open(CACHE_PATH, "rb") as f:
+                data = pickle.load(f)
+            self.pipeline = data["pipeline"]
+            self.categories = data["categories"]
+            self._ready = True
+            return True
+        except Exception:
+            return False
 
-        for res in _NLTK_RESOURCES:
+    def _save_cache(self) -> None:
+        try:
+            os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
+            with open(CACHE_PATH, "wb") as f:
+                pickle.dump({"pipeline": self.pipeline, "categories": self.categories}, f)
+        except Exception:
+            pass
+
+    def train(self) -> None:
+        import nltk
+        for res in ("punkt_tab", "wordnet", "omw-1.4", "stopwords"):
             try:
                 nltk.data.find(f"corpora/{res}")
             except LookupError:
@@ -43,19 +62,17 @@ class PaperClassifier:
         from nltk.stem import PorterStemmer, WordNetLemmatizer
         from nltk.tokenize import word_tokenize
 
-        self._tokenize = word_tokenize
-        self._stemmer = PorterStemmer()
-        self._lemmatizer = WordNetLemmatizer()
-        self._stopwords = set(stopwords.words("english"))
+        stemmer = PorterStemmer()
+        lemmatizer = WordNetLemmatizer()
+        stop_words = set(stopwords.words("english"))
 
-    def _preprocess(self, text: str) -> list[str]:
-        toks = [t for t in self._tokenize(text.lower())
-                if t not in string.punctuation and t not in self._stopwords and len(t) > 2]
-        return [self._stemmer.stem(self._lemmatizer.lemmatize(t)) for t in toks]
+        def tokenize(text):
+            return [
+                stemmer.stem(lemmatizer.lemmatize(t))
+                for t in word_tokenize(text.lower())
+                if t not in string.punctuation and t not in stop_words and len(t) > 2
+            ]
 
-    # -- training ----------------------------------------------------------
-    def train(self) -> None:
-        self._ensure_nltk()
         with open(self.data_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
@@ -64,36 +81,28 @@ class PaperClassifier:
             for sample in samples:
                 texts.append(sample)
                 labels.append(category)
-        self.categories = list(data.keys())
 
-        self.pipeline = Pipeline(
-            [
-                ("tfidf", TfidfVectorizer(
-                    tokenizer=self._preprocess,
-                    preprocessor=None,
-                    lowercase=False,
-                    token_pattern=None,
-                    ngram_range=(1, 2),
-                    min_df=1,
-                )),
-                ("clf", LogisticRegression(max_iter=2000, C=10.0)),
-            ]
-        )
+        self.pipeline = Pipeline([
+            ("tfidf", TfidfVectorizer(
+                tokenizer=tokenize, lowercase=False, token_pattern=None,
+                ngram_range=(1, 2), min_df=1,
+            )),
+            ("clf", LogisticRegression(max_iter=2000, C=10.0)),
+        ])
         self.pipeline.fit(texts, labels)
         self.categories = list(self.pipeline.named_steps["clf"].classes_)
         self._ready = True
+        self._save_cache()
 
     def _ensure_ready(self) -> None:
         if not self._ready:
+            if self._load_cache():
+                return
             if not os.path.exists(self.data_path):
-                raise FileNotFoundError(
-                    f"Classifier training data missing: {self.data_path}"
-                )
+                raise FileNotFoundError(f"Classifier data missing: {self.data_path}")
             self.train()
 
-    # -- inference ---------------------------------------------------------
     def predict(self, text: str) -> tuple[str, float]:
-        """Return (category, confidence)."""
         self._ensure_ready()
         probs = self.pipeline.predict_proba([text])[0]
         idx = int(probs.argmax())

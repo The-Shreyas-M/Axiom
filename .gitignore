@@ -7,3 +7,5 @@ output/
 sample_attention_paper.pdf
 .ipynb_checkpoints/
 .gradio/
+data/classifier_cache.pkl
+*.ipynb

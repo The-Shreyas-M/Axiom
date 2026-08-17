@@ -1,24 +1,21 @@
-"""Vision module: captions for figures/tables + image Q&A via a vision model.
+"""Vision module: captions for figures/tables + image Q&A via the provider's vision API.
 
-Captions turn visual content into retrievable text in the same embedding
-space, so figure questions are answered by RAG. Figure-level chat still
-sends the raw image to the vision model (true multimodal). Provider-agnostic
-(Gemini or Ollama); see providers.py.
+Uses the provider's native vision capability (Gemini, NVIDIA NIM, Groq, etc.)
+with parallel figure captioning via ThreadPoolExecutor for speed.
 """
 
 from __future__ import annotations
 
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional
 
-from providers import get_default_provider
+MAX_FIGURES_CAPTIONED = 5
+MAX_WORKERS = 5
 
-MAX_FIGURES_CAPTIONED = 15  # guard against long captioning runs
 CAPTION_PROMPT = (
-    "You are analyzing a figure extracted from an academic research paper. "
-    "Describe it in detail for someone who cannot see it: the type of visual "
+    "Describe this research paper figure in detail: the type of visual "
     "(plot, chart, diagram, photograph), axes, labels, legend entries, data "
-    "trends, and the key takeaway. Transcribe any readable text in the image. "
-    "Keep it under 150 words."
+    "trends, and the key takeaway. Keep it under 100 words."
 )
 
 ASK_IMAGE_PROMPT = (
@@ -31,26 +28,54 @@ ASK_IMAGE_PROMPT = (
 class FigureCaptioner:
     """Generates captions for extracted figures and answers image questions."""
 
-    def __init__(self, provider=None,
-                 max_figures: int = MAX_FIGURES_CAPTIONED, sleep_sec: float = 0.2):
-        self.provider = provider or get_default_provider()
+    def __init__(self, provider=None, max_figures: int = MAX_FIGURES_CAPTIONED,
+                 max_workers: int = MAX_WORKERS):
+        self.provider = provider
         self.max_figures = max_figures
-        self.sleep_sec = sleep_sec
+        self.max_workers = max_workers
+
+    def _get_provider(self):
+        if self.provider is None:
+            from providers import get_default_provider
+            self.provider = get_default_provider()
+        return self.provider
 
     def caption_figure(self, image_path: str) -> str:
-        text = self.provider.generate_vision(image_path, CAPTION_PROMPT)
-        time.sleep(self.sleep_sec)  # give the GPU a breath between calls
-        return text.strip()
+        provider = self._get_provider()
+        try:
+            return provider.generate_vision(image_path, CAPTION_PROMPT).strip()
+        except Exception:
+            return "[Caption unavailable]"
 
     def caption_paper(self, figures) -> dict[int, str]:
-        """Return {figure_index: caption} for up to max_figures figures."""
         captions: dict[int, str] = {}
-        for figure in figures[: self.max_figures]:
-            try:
-                captions[figure.number] = self.caption_figure(figure.image_path)
-            except Exception as exc:  # keep pipeline alive if one call fails
-                captions[figure.number] = f"[Caption failed: {exc}]"
+        to_caption = [(f.number, f.image_path) for f in figures[:self.max_figures]]
+
+        if len(to_caption) <= 1:
+            for num, path in to_caption:
+                try:
+                    captions[num] = self.caption_figure(path)
+                except Exception:
+                    captions[num] = "[Caption unavailable]"
+            return captions
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
+            futures = {
+                pool.submit(self.caption_figure, path): num
+                for num, path in to_caption
+            }
+            for future in as_completed(futures):
+                num = futures[future]
+                try:
+                    captions[num] = future.result()
+                except Exception:
+                    captions[num] = "[Caption unavailable]"
+
         return captions
 
     def ask_about_image(self, image_path: str, question: str) -> str:
-        return self.provider.generate_vision(image_path, question, system=ASK_IMAGE_PROMPT).strip()
+        provider = self._get_provider()
+        try:
+            return provider.generate_vision(image_path, ASK_IMAGE_PROMPT + f"\n\nQuestion: {question}").strip()
+        except Exception as exc:
+            return f"Unable to answer: {exc}"
