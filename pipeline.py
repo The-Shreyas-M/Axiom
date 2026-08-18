@@ -122,11 +122,11 @@ class SessionStore:
 
         all_page_numbers = [p.number for p in paper.pages]
         tick(0.10, f"GPU OCR on {len(all_page_numbers)} pages...")
-        ocr_results = ocr_pages(paper.path, all_page_numbers)
-        for pno, text in ocr_results.items():
+        ocr_hits = ocr_pages(paper.path, all_page_numbers)
+        for pno, text in ocr_hits.items():
             if text.strip():
                 paper.pages[pno - 1].text = text
-        ocr_pages = list(ocr_results.keys())
+        ocr_page_list = list(ocr_hits.keys())
 
         tick(0.55, "Classifying...")
         classification = self.classifier.predict_top3(paper.full_text[:CLASSIFY_PREFIX_CHARS])
@@ -135,7 +135,7 @@ class SessionStore:
         self._index_paper(paper)
 
         processed = ProcessedPaper(
-            paper=paper, classification=classification, ocr_pages=ocr_pages,
+            paper=paper, classification=classification, ocr_pages=ocr_page_list,
         )
         self.papers.append(processed)
         for f in paper.figures:
