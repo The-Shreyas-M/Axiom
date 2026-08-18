@@ -1,9 +1,4 @@
-"""Vision module: on-demand figure captioning + image Q&A via provider vision API.
-
-Figure captioning is NOT done during processing. Captions are generated
-on-demand when a user clicks a figure in the gallery or asks about one.
-This keeps initial processing fast (~5-10s instead of minutes).
-"""
+"""Vision module: on-demand figure captioning + image Q&A via vision provider (Gemini)."""
 
 from __future__ import annotations
 
@@ -24,15 +19,13 @@ ASK_IMAGE_PROMPT = (
 
 
 class FigureCaptioner:
-    """On-demand figure captioning and image Q&A."""
-
     def __init__(self, provider=None):
         self.provider = provider
 
     def _get_provider(self):
         if self.provider is None:
-            from providers import get_default_provider
-            self.provider = get_default_provider()
+            from providers import get_vision_provider
+            self.provider = get_vision_provider()
         return self.provider
 
     def caption_figure(self, image_path: str) -> str:
@@ -44,18 +37,13 @@ class FigureCaptioner:
             return f"[Caption error: {exc}]"
 
     def caption_figures_parallel(self, image_paths: list[str]) -> dict[int, str]:
-        """Caption multiple figures in parallel. Returns {index: caption}."""
         if not image_paths:
             return {}
         if len(image_paths) == 1:
             return {0: self.caption_figure(image_paths[0])}
-
         captions: dict[int, str] = {}
         with ThreadPoolExecutor(max_workers=MAX_CAPTION_WORKERS) as pool:
-            futures = {
-                pool.submit(self.caption_figure, path): idx
-                for idx, path in enumerate(image_paths)
-            }
+            futures = {pool.submit(self.caption_figure, p): i for i, p in enumerate(image_paths)}
             for future in as_completed(futures):
                 idx = futures[future]
                 try:

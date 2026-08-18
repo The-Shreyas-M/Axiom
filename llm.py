@@ -1,8 +1,8 @@
-"""LLM layer: citation-aware summaries and RAG answers."""
+"""LLM layer: citation-aware summaries and RAG answers. Uses Groq (fast)."""
 
 from __future__ import annotations
 
-from providers import get_default_provider
+from providers import get_text_provider
 
 SUMMARIZE_SYSTEM = (
     "Summarize this research paper in markdown with sections: "
@@ -15,12 +15,12 @@ ANSWER_SYSTEM = (
     "If the context lacks the answer, say so. Be concise."
 )
 
-MAX_SUMMARY_CHARS = 80_000
+MAX_SUMMARY_CHARS = 28_000
 
 
 class ResearchLLM:
     def __init__(self, provider=None):
-        self.provider = provider or get_default_provider()
+        self.provider = provider or get_text_provider()
 
     def summarize(self, full_text: str) -> str:
         text = (full_text or "").strip()
@@ -33,6 +33,6 @@ class ResearchLLM:
             return "No relevant content found."
         blocks = []
         for i, hit in enumerate(hits, 1):
-            blocks.append(f"[{i}] {hit['label']} (p.{hit['page']}, {hit['type']})\n{hit['text'][:1200]}")
-        prompt = f"Context:\n{'─'*40}\n" + "\n\n".join(blocks) + f"\n{'─'*40}\n\nQuestion: {question}"
+            blocks.append(f"[{i}] {hit['label']} (p.{hit['page']}, {hit['type']})\n{hit['text'][:1000]}")
+        prompt = "Context:\n" + "\n\n".join(blocks) + f"\n\nQuestion: {question}"
         return self.provider.generate_text(prompt, system=ANSWER_SYSTEM)

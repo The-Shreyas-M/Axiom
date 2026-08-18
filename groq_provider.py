@@ -1,12 +1,4 @@
-"""Groq provider: fast LLMs via Groq's OpenAI‑compatible API.
-
-Endpoint: https://api.groq.com/openai/v1/chat/completions
-Key: GROQ_API_KEY env var or .env in the project root.
-Get a free key at https://console.groq.com/
-
-Env overrides:
-  GROQ_MODEL   default model name (default "mixtral-8x7b-32768")
-"""
+"""Groq provider: fast LLMs via Groq's OpenAI-compatible API."""
 
 from __future__ import annotations
 
@@ -22,25 +14,20 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parent
 load_dotenv(PROJECT_ROOT / ".env")
 
-DEFAULT_MODEL = os.environ.get("GROQ_MODEL", "mixtral-8x7b-32768")
+DEFAULT_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
-TIMEOUT = 30.0  # seconds
+TIMEOUT = 60.0
 
 
 def resolve_api_key() -> str:
     key = os.environ.get("GROQ_API_KEY", "")
     if not key:
-        raise RuntimeError(
-            "No GROQ_API_KEY found. Set it via environment variable or a .env "
-            "file in the project root (see https://console.groq.com/)."
-        )
+        raise RuntimeError("No GROQ_API_KEY found.")
     return key
 
 
 class GroqProvider:
-    """Text and vision generation through Groq's chat endpoint."""
-
-    max_context_chars = 32_000  # conservative; actual limit depends on model
+    max_context_chars = 32_000
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or resolve_api_key()
@@ -50,13 +37,12 @@ class GroqProvider:
             "Content-Type": "application/json",
         }
 
-    # -- internals ---------------------------------------------------------
-    def _chat(self, messages: list[dict]) -> str:
+    def _chat(self, messages: list[dict], max_tokens: int = 2048) -> str:
         payload = {
             "model": self.model,
             "messages": messages,
             "temperature": 0.3,
-            "max_tokens": 1024,
+            "max_tokens": max_tokens,
             "stream": False,
         }
         try:
@@ -66,25 +52,18 @@ class GroqProvider:
             content = data["choices"][0]["message"]["content"]
             if content:
                 return content.strip()
-            # Some Groq responses may put text in a different field
-            for choice in data.get("choices", []):
-                if "message" in choice and "content" in choice["message"]:
-                    return choice["message"]["content"].strip()
-            raise RuntimeError("Empty response from Groq API")
+            raise RuntimeError("Empty response from Groq")
         except httpx.HTTPStatusError as exc:
-            # Include Groq's error message if possible
-            detail = exc.response.text
-            raise RuntimeError(f"Groq API error {exc.response.status_code}: {detail}") from exc
+            raise RuntimeError(f"Groq error {exc.response.status_code}: {exc.response.text}") from exc
         except Exception as exc:
-            raise RuntimeError(f"Groq API call failed: {exc}") from exc
+            raise RuntimeError(f"Groq failed: {exc}") from exc
 
-    # -- interface (mirrors GeminiProvider / OllamaProvider) ---------------
     def generate_text(self, prompt: str, system: Optional[str] = None) -> str:
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
-        return self._chat(messages)
+        return self._chat(messages, max_tokens=2048)
 
     def generate_vision(self, image_path: str, prompt: str, system: Optional[str] = None) -> str:
         b64 = base64.b64encode(Path(image_path).read_bytes()).decode("ascii")
@@ -98,7 +77,7 @@ class GroqProvider:
                 {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
             ],
         }]
-        return self._chat(messages)
+        return self._chat(messages, max_tokens=1024)
 
     def check(self) -> tuple[bool, str]:
         try:
