@@ -1,10 +1,16 @@
-"""GPU OCR for every page using EasyOCR (PyTorch CUDA)."""
+"""OCR: EasyOCR on GPU for pages that need it.
+
+PyMuPDF extracts text from most pages instantly. Only pages with
+little/no extractable text (scans, images) go through EasyOCR.
+This keeps processing fast while ensuring nothing is missed.
+"""
 
 from __future__ import annotations
 
 import numpy as np
 import pymupdf as fitz
 
+MIN_CHARS = 60
 _reader = None
 
 
@@ -16,44 +22,46 @@ def _get_reader():
     return _reader
 
 
-def ocr_page(doc_path: str, page_number: int, dpi: int = 200) -> str:
-    """OCR a single 1-based page number. Returns text."""
+def _needs_ocr(page) -> bool:
+    text = page.get_text("text").strip()
+    if len(text) < MIN_CHARS:
+        return True
+    page_area = max(page.rect.width * page.rect.height, 1.0)
+    covered = 0.0
+    for info in page.get_image_info():
+        r = fitz.Rect(info["bbox"]) & page.rect
+        if not r.is_empty:
+            covered += r.get_area()
+    return covered / page_area >= 0.5
+
+
+def ocr_pages(doc_path: str, page_numbers: list[int], dpi: int = 150) -> dict[int, str]:
+    """OCR only pages that need it. Returns {page_num: text}."""
+    if not page_numbers:
+        return {}
+
     reader = _get_reader()
     doc = fitz.open(doc_path)
+    results: dict[int, str] = {}
     try:
-        page = doc[page_number - 1]
-        pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72))
-        img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(
-            pix.height, pix.width, pix.n
-        )
-        if pix.n == 4:
-            img = img[:, :, :3]
-        elif pix.n == 1:
-            img = np.repeat(img, 3, axis=2)
+        for pno in page_numbers:
+            page = doc[pno - 1]
+            if not _needs_ocr(page):
+                continue
 
-        results = reader.readtext(img, detail=1, paragraph=True)
-        lines = []
-        for item in results:
-            if isinstance(item, dict):
-                text = item.get("text", "")
-                if text and text.strip():
-                    lines.append(text.strip())
-            elif isinstance(item, (list, tuple)) and len(item) >= 2:
-                text = str(item[1]) if not isinstance(item[1], (list, tuple)) else ""
-                if text and text.strip():
-                    lines.append(text.strip())
-            elif isinstance(item, str) and item.strip():
-                lines.append(item.strip())
-        return "\n".join(lines)
+            pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72))
+            img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(
+                pix.height, pix.width, pix.n
+            )
+            if pix.n >= 4:
+                img = img[:, :, :3]
+            elif pix.n == 1:
+                img = np.repeat(img, 3, axis=2)
+
+            ocr_result = reader.readtext(img, detail=0, paragraph=True)
+            text = "\n".join(t.strip() for t in ocr_result if t.strip())
+            if text:
+                results[pno] = text
     finally:
         doc.close()
-
-
-def ocr_all_pages(doc_path: str, page_numbers: list[int], dpi: int = 200) -> dict[int, str]:
-    """OCR multiple pages. Returns {page_num: text}."""
-    results: dict[int, str] = {}
-    for pno in page_numbers:
-        text = ocr_page(doc_path, pno, dpi)
-        if text.strip():
-            results[pno] = text
     return results

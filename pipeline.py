@@ -13,7 +13,7 @@ from typing import Optional
 from classifier import PaperClassifier
 from embeddings import Embedder, chunk_text
 from llm import ResearchLLM
-from ocr import ocr_all_pages
+from ocr import ocr_pages
 from pdf_parser import Paper, parse_pdf
 from providers import get_text_provider, get_vision_provider
 from retriever import Retriever, make_chunk_meta, make_figure_meta, make_table_meta
@@ -122,7 +122,7 @@ class SessionStore:
 
         all_page_numbers = [p.number for p in paper.pages]
         tick(0.10, f"GPU OCR on {len(all_page_numbers)} pages...")
-        ocr_results = ocr_all_pages(paper.path, all_page_numbers)
+        ocr_results = ocr_pages(paper.path, all_page_numbers)
         for pno, text in ocr_results.items():
             if text.strip():
                 paper.pages[pno - 1].text = text
