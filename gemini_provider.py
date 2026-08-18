@@ -1,13 +1,4 @@
-"""Gemini provider: cloud text + vision generation via the Interactions API.
-
-Satisfies the same interface as OllamaProvider (generate_text,
-generate_vision, check) so vision.py / llm.py / pipeline.py are provider-
-agnostic. Uses the Interactions API (GA since June 2026, required for new keys)
-with model fallback.
-
-Key: GEMINI_API_KEY env var or .env in the project root.
-Create a free key at https://aistudio.google.com/apikey
-"""
+"""Gemini provider: cloud text + vision generation via the Interactions API."""
 
 from __future__ import annotations
 
@@ -30,10 +21,7 @@ FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash-lite"]
 def resolve_api_key() -> str:
     key = os.environ.get("GEMINI_API_KEY", "")
     if not key:
-        raise RuntimeError(
-            "No GEMINI_API_KEY found. Set it via environment variable or a .env "
-            "file in the project root (see https://aistudio.google.com/apikey)."
-        )
+        raise RuntimeError("No GEMINI_API_KEY found.")
     return key
 
 
@@ -42,12 +30,10 @@ class GeminiProvider:
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         from google import genai
-
         self.client = genai.Client(api_key=api_key or resolve_api_key())
         self.model = model or PRIMARY_MODEL
         self._fallbacks = [m for m in FALLBACK_MODELS if m != self.model]
 
-    # -- internals ---------------------------------------------------------
     def _image_part(self, image_path: str) -> dict:
         mime, _ = mimetypes.guess_type(image_path)
         return {
@@ -57,7 +43,6 @@ class GeminiProvider:
         }
 
     def _call(self, input_) -> str:
-        """Try the configured model, then fallbacks, for one request."""
         models = [self.model] + self._fallbacks
         last_exc: Exception | None = None
         for model in models:
@@ -73,11 +58,10 @@ class GeminiProvider:
             except Exception as exc:
                 last_exc = exc
                 if "denied access" in str(exc).lower():
-                    break  # account/project block; fallbacks won't help
-                time.sleep(1.0)  # polite pacing between retries
+                    break
+                time.sleep(0.3)
         raise RuntimeError(f"Gemini call failed: {last_exc}")
 
-    # -- interface (mirrors OllamaProvider) --------------------------------
     def generate_text(self, prompt: str, system: Optional[str] = None) -> str:
         user = f"{system}\n\n{prompt}" if system else prompt
         return self._call(user)
