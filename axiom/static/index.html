@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Axiom</title>
+<style>
+:root{--bg:#e4e9f1;--panel:#e4e9f1;--ink:#2b3445;--mute:#7a869a;--line:#d3dae6;--acc:#5b5bf0;--acc2:#dfe3f7;--ok:#10a37f;--warn:#d97706;--hi:#ffffff;--lo:#b9c2d3;--r:20px}
+@media(prefers-color-scheme:dark){:root{--bg:#23272f;--panel:#23272f;--ink:#e6e9f0;--mute:#8d97aa;--line:#2f3541;--acc:#8b8bff;--acc2:#2c3040;--ok:#34d399;--warn:#fbbf24;--hi:#2d323c;--lo:#191c22}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Segoe UI",Inter,system-ui,sans-serif;height:100vh;display:grid;grid-template-columns:250px 1fr 410px;gap:20px;padding:20px}
+aside,main,section{background:var(--panel);overflow:hidden;display:flex;flex-direction:column;min-height:0;border-radius:var(--r);box-shadow:9px 9px 18px var(--lo),-9px -9px 18px var(--hi)}
+h1{font-size:17px;margin:0;padding:20px 20px 2px;letter-spacing:.2px;font-weight:700}h1 b{background:linear-gradient(135deg,var(--acc),#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{padding:0 20px 8px;color:var(--mute);font-size:12px}
+#drop{margin:10px 16px;border-radius:16px;padding:20px 12px;text-align:center;color:var(--mute);cursor:pointer;box-shadow:inset 5px 5px 10px var(--lo),inset -5px -5px 10px var(--hi);transition:.2s}
+#drop.over,#drop:hover{color:var(--acc)}#drop.over{box-shadow:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi),0 0 0 2px var(--acc)}
+#list{overflow:auto;flex:1;padding:6px 14px}
+.paper{padding:10px 12px;border-radius:14px;cursor:pointer;display:flex;gap:6px;align-items:flex-start;margin-bottom:10px;transition:.15s;box-shadow:4px 4px 9px var(--lo),-4px -4px 9px var(--hi)}
+.paper:hover{transform:translateY(-1px)}.paper.on{box-shadow:inset 4px 4px 8px var(--lo),inset -4px -4px 8px var(--hi);color:var(--acc);font-weight:600}
+.paper span{flex:1;overflow:hidden;font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.paper button{opacity:0;border:0;background:none;color:var(--mute);cursor:pointer}.paper:hover button{opacity:1}
+.tabs{display:flex;gap:10px;padding:16px 20px 6px}
+.tab{padding:8px 18px;cursor:pointer;color:var(--mute);border-radius:12px;transition:.15s;box-shadow:3px 3px 7px var(--lo),-3px -3px 7px var(--hi)}
+.tab.on{color:var(--acc);font-weight:600;box-shadow:inset 3px 3px 7px var(--lo),inset -3px -3px 7px var(--hi)}
+.pane{flex:1;overflow:auto;padding:14px 22px 22px;min-height:0}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.chip{padding:4px 13px;border-radius:99px;cursor:pointer;font-size:12px;color:var(--ink);transition:.15s;box-shadow:3px 3px 6px var(--lo),-3px -3px 6px var(--hi)}
+.chip.on{color:var(--acc);font-weight:600;box-shadow:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
+input.search{flex:1;min-width:120px;padding:8px 14px;border:0;border-radius:12px;background:var(--bg);color:var(--ink);outline:0;box-shadow:inset 4px 4px 8px var(--lo),inset -4px -4px 8px var(--hi)}
+.card{border-radius:18px;padding:16px;margin-bottom:20px;background:var(--panel);box-shadow:7px 7px 15px var(--lo),-7px -7px 15px var(--hi);transition:.2s}
+.card.sel{box-shadow:7px 7px 15px var(--lo),-7px -7px 15px var(--hi),0 0 0 2px var(--acc)}
+.card .meta{display:flex;gap:10px;align-items:center;color:var(--mute);font-size:12px;margin-bottom:8px}
+.badge{padding:2px 10px;border-radius:99px;color:var(--acc);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;box-shadow:inset 2px 2px 5px var(--lo),inset -2px -2px 5px var(--hi)}
+.card img{max-width:100%;max-height:340px;border-radius:12px;display:block;margin:8px 0;background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
+.card .txt{white-space:pre-wrap;max-height:160px;overflow:auto}
+.card .cap{font-style:italic;color:var(--mute);margin:4px 0}
+.card .desc{font-size:13px;border-left:3px solid var(--acc);padding-left:10px;margin:8px 0}
+.btn{padding:6px 14px;border:0;color:var(--acc);background:var(--panel);border-radius:12px;cursor:pointer;font:inherit;font-size:12px;font-weight:600;transition:.15s;box-shadow:4px 4px 8px var(--lo),-4px -4px 8px var(--hi)}
+.btn:hover{transform:translateY(-1px)}.btn:active{box-shadow:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);transform:none}
+.btn.pri{background:linear-gradient(135deg,var(--acc),#a78bfa);color:#fff;box-shadow:4px 4px 10px var(--lo),-3px -3px 8px var(--hi)}
+table.md{border-collapse:collapse;font-size:12px;display:block;overflow:auto;max-height:220px}table.md td,table.md th{border:1px solid var(--line);padding:3px 8px}
+#chat{flex:1;overflow:auto;padding:16px 18px;min-height:0}
+.msg{margin-bottom:14px;max-width:100%}
+.msg.u{padding:10px 14px;border-radius:16px 16px 4px 16px;margin-left:36px;box-shadow:inset 4px 4px 8px var(--lo),inset -4px -4px 8px var(--hi)}
+.msg.a{white-space:pre-wrap;padding:10px 14px;border-radius:16px 16px 16px 4px;margin-right:16px;box-shadow:5px 5px 11px var(--lo),-5px -5px 11px var(--hi)}
+.src{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.src .chip{font-size:11px;padding:2px 10px;color:var(--acc)}
+#focus{margin:0 18px 8px;padding:8px 12px;border-radius:14px;display:none;font-size:12px;justify-content:space-between;gap:8px;align-items:center;box-shadow:inset 4px 4px 8px var(--lo),inset -4px -4px 8px var(--hi)}
+#focus img{height:34px;border-radius:6px;vertical-align:middle;margin-right:8px}
+form{display:flex;gap:12px;padding:14px 18px 18px;align-items:center}
+form textarea{flex:1;resize:none;padding:11px 14px;border:0;border-radius:14px;background:var(--bg);color:var(--ink);font:inherit;height:46px;outline:0;box-shadow:inset 4px 4px 8px var(--lo),inset -4px -4px 8px var(--hi)}
+.bar{height:8px;border-radius:4px;overflow:hidden;margin:6px 18px;box-shadow:inset 2px 2px 4px var(--lo),inset -2px -2px 4px var(--hi)}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),#c084fc);transition:width .3s;border-radius:4px}
+#status{padding:8px 20px;font-size:12px;color:var(--mute)}
+.empty{color:var(--mute);text-align:center;margin-top:20vh}
+iframe{width:100%;height:100%;border:0;border-radius:14px}
+.sum{white-space:pre-wrap;line-height:1.7}.sum b{color:var(--acc)}
+.ph{padding:16px 20px 12px;font-weight:700;font-size:15px}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--lo);border-radius:8px}
+@media(max-width:1000px){body{grid-template-columns:1fr;height:auto}}
+</style></head><body>
+<aside>
+  <h1><b>Axiom</b> · paper assistant</h1><div class="sub">100% local · no sign-up</div>
+  <div id="drop">Drop a PDF here or click<br><small>digital or scanned</small></div>
+  <input type="file" id="file" accept="application/pdf" hidden>
+  <div class="bar" id="bar" style="display:none"><i></i></div><div class="sub" id="pmsg"></div>
+  <div id="list"></div>
+  <div id="status"></div><button class="btn" id="quit" style="margin:8px 16px 16px;color:#e11d48">⏻ Quit Axiom</button>
+</aside>
+<main>
+  <div class="tabs"><div class="tab on" data-t="summary">Summary</div><div class="tab" data-t="elements">Elements</div><div class="tab" data-t="pdf">PDF</div></div>
+  <div class="pane" id="pane"><div class="empty"><div style="font-size:42px">&#128214;</div><b>Drop a research paper to begin</b><br>Everything runs on your machine.</div></div>
+</main>
+<section>
+  <div class="ph">Ask the paper</div>
+  <div id="chat"><div class="empty" style="margin-top:8vh">Ask anything, or click <b>Ask about this</b> on a figure, table, caption or paragraph.</div></div>
+  <div id="focus"><span id="focusl"></span><button class="btn" id="unfocus">✕</button></div>
+  <form id="ask"><textarea id="q" placeholder="e.g. What does Figure 2 show?" ></textarea><button class="btn pri">Send</button></form>
+</section>
+<script>
+const $=s=>document.querySelector(s), esc=s=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let S={pid:null,els:[],tab:'summary',filter:'all',q:'',focus:null,hist:[],busy:false};
+const api=(u,o)=>fetch(u,o).then(r=>r.json());
+
+async function health(){const h=await api('/api/health');
+  $('#status').innerHTML=!h.ollama?'<span style="color:var(--warn)">Ollama not running — start it with <code>ollama serve</code></span>':
+   !h.model_ready?`<span style="color:var(--warn)">Model missing: <code>ollama pull ${h.model}</code></span>`:`<span style="color:var(--ok)">●</span> ${h.model} ready`}
+async function refresh(){const l=await api('/api/papers');
+  $('#list').innerHTML=l.map(p=>`<div class="paper ${p.id==S.pid?'on':''}" data-id="${p.id}"><span title="${esc(p.filename)}">${esc(p.title||p.filename)}</span><button data-del="${p.id}">✕</button></div>`).join('')||'<div class="sub">No papers yet</div>'}
+$('#list').onclick=async e=>{const d=e.target.dataset.del;if(d){if(confirm('Delete this paper?')){await fetch('/api/papers/'+d,{method:'DELETE'});if(S.pid==d){S.pid=null;$('#pane').innerHTML='<div class="empty">Upload or select a paper.</div>'}refresh()}return}
+  const p=e.target.closest('.paper');if(p)open(p.dataset.id)};
+
+const drop=$('#drop');drop.onclick=()=>$('#file').click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');up(e.dataTransfer.files[0])};$('#file').onchange=e=>up(e.target.files[0]);
+async function up(f){if(!f)return;const fd=new FormData();fd.append('file',f);$('#bar').style.display='block';$('#pmsg').textContent='Uploading…';
+  const r=await fetch('/api/upload',{method:'POST',body:fd});if(!r.ok){$('#pmsg').textContent='Not a valid PDF';return}
+  const {job}=await r.json();
+  const t=setInterval(async()=>{const j=await api('/api/jobs/'+job);$('#bar i').style.width=j.progress*100+'%';$('#pmsg').textContent=j.error||j.message;
+    if(j.done){clearInterval(t);if(!j.error){setTimeout(()=>$('#bar').style.display='none',800);await refresh();open(j.paper)}}},500)}
+
+async function open(pid){S.pid=pid;S.hist=[];S.focus=null;setFocus(null);$('#chat').innerHTML='';
+  const d=await api('/api/papers/'+pid);S.els=d.elements;S.meta=d.meta;refresh();show(S.tab)}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');S.tab=t.dataset.t;show(S.tab)});
+
+function show(t){if(!S.pid)return;const p=$('#pane');
+  if(t=='summary')return summary(p);
+  if(t=='pdf'){p.style.padding=0;p.innerHTML=`<iframe id="pdf" src="/api/papers/${S.pid}/file/paper.pdf"></iframe>`;return}
+  p.style.padding='';elements(p)}
+async function summary(p){p.style.padding='';const m=S.meta,c=m.stats.counts||{};
+  p.innerHTML=`<div class="chips"><span class="badge">${m.stats.pages} pages</span><span class="badge">${c.text||0} text</span><span class="badge">${c.figure||0} figures</span><span class="badge">${c.table||0} tables</span><span class="badge">${c.caption||0} captions</span>${m.stats.scanned_pages?`<span class="badge">${m.stats.scanned_pages} scanned (OCR)</span>`:''}<span class="sub">ingested in ${m.seconds}s</span></div><div class="sum" id="sum">Generating summary…</div>`;
+  const el=$('#sum');let txt='';await stream('/api/papers/'+S.pid+'/summary',null,ev=>{if(ev.token){txt+=ev.token;el.innerHTML=esc(txt).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}})}
+
+function elements(p){const f=S.filter,q=S.q.toLowerCase();
+  const list=S.els.filter(e=>(f=='all'||e.type==f)&&(!q||(e.text+e.caption+e.desc+(e.label||'')).toLowerCase().includes(q)));
+  p.innerHTML=`<div class="chips">${['all','text','figure','table','caption'].map(t=>`<span class="chip ${f==t?'on':''}" data-f="${t}">${t} ${t=='all'?S.els.length:S.els.filter(e=>e.type==t).length}</span>`).join('')}<input class="search" placeholder="Filter…" value="${esc(S.q)}"></div><div id="cards">${list.slice(0,150).map(card).join('')}</div>`;
+  p.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{S.filter=c.dataset.f;elements(p)});
+  const inp=p.querySelector('.search');inp.oninput=()=>{S.q=inp.value;clearTimeout(S.tm);S.tm=setTimeout(()=>{elements(p);const i=p.querySelector('.search');i.focus();i.setSelectionRange(99,99)},250)};
+  p.querySelectorAll('[data-ask]').forEach(b=>b.onclick=()=>setFocus(b.dataset.ask));
+  p.querySelectorAll('[data-desc]').forEach(b=>b.onclick=async()=>{b.textContent='Analysing…';const e=await api(`/api/papers/${S.pid}/describe/${b.dataset.desc}`,{method:'POST'});S.els=S.els.map(x=>x.id==e.id?e:x);elements(p)});
+  p.querySelectorAll('[data-pg]').forEach(b=>b.onclick=()=>{document.querySelector('[data-t=pdf]').click();setTimeout(()=>$('#pdf').src=`/api/papers/${S.pid}/file/paper.pdf#page=${b.dataset.pg}`,50)})}
+function mdTable(t){const rows=t.trim().split('\n').filter(r=>r.includes('|')&&!/^\|?[\s:-|]+\|?$/.test(r));if(rows.length<2)return `<div class="txt">${esc(t)}</div>`;
+  return '<table class="md">'+rows.map(r=>'<tr>'+r.replace(/^\||\|$/g,'').split('|').map(c=>`<td>${esc(c.trim())}</td>`).join('')+'</tr>').join('')+'</table>'}
+function card(e){const sel=S.focus==e.id?' sel':'';
+  return `<div class="card${sel}"><div class="meta"><span class="badge">${e.type}</span>${e.label?`<b>${esc(e.label)}</b>`:''}<span>p.${e.page}</span><span>${esc((e.section||'').slice(0,40))}</span></div>
+  ${e.image?`<img loading="lazy" src="/api/papers/${S.pid}/file/${e.image}">`:''}
+  ${e.caption?`<div class="cap">${esc(e.caption)}</div>`:''}
+  ${e.type=='table'&&e.text?mdTable(e.text):(e.text?`<div class="txt">${esc(e.text)}</div>`:'')}
+  ${e.desc?`<div class="desc"><b>Visual summary:</b> ${esc(e.desc)}</div>`:''}
+  <div style="display:flex;gap:6px;margin-top:6px"><button class="btn pri" data-ask="${e.id}">Ask about this</button>${e.image&&!e.desc?`<button class="btn" data-desc="${e.id}">Analyse image</button>`:''}<button class="btn" data-pg="${e.page}">View page</button></div></div>`}
+
+function setFocus(id){S.focus=id;const f=$('#focus');if(!id){f.style.display='none';return}
+  const e=S.els.find(x=>x.id==id);f.style.display='flex';$('#focusl').innerHTML=(e.image?`<img src="/api/papers/${S.pid}/file/${e.image}">`:'')+`Asking about <b>${esc(e.label||e.type)}</b> · p.${e.page}`;$('#q').focus()}
+$('#unfocus').onclick=()=>setFocus(null);
+
+async function stream(url,body,cb){const r=await fetch(url,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
+  for(;;){const {value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});const parts=buf.split('\n\n');buf=parts.pop();
+    for(const p of parts)if(p.startsWith('data: '))cb(JSON.parse(p.slice(6)))}}
+$('#q').onkeydown=e=>{if(e.key=='Enter'&&!e.shiftKey){e.preventDefault();$('#ask').requestSubmit()}};
+$('#ask').onsubmit=async e=>{e.preventDefault();const q=$('#q').value.trim();if(!q||!S.pid||S.busy)return;S.busy=true;$('#q').value='';
+  const chat=$('#chat');if(!S.hist.length)chat.innerHTML='';
+  chat.insertAdjacentHTML('beforeend',`<div class="msg u">${esc(q)}</div><div class="msg a"><i style="color:var(--mute)">Thinking…</i></div>`);
+  const el=chat.lastElementChild;let txt='';chat.scrollTop=1e9;
+  await stream(`/api/papers/${S.pid}/ask`,{question:q,focus:S.focus,history:S.hist},ev=>{
+    if(ev.sources){el.dataset.src=JSON.stringify(ev.sources);el.innerHTML='<i style="color:var(--mute)">Reading '+ev.sources.slice(0,3).map(x=>esc(x.label)).join(', ')+'…</i>'}
+    if(ev.token){txt+=ev.token;el.innerHTML=esc(txt).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');chat.scrollTop=1e9}
+    if(ev.done){const src=JSON.parse(el.dataset.src||'[]');el.insertAdjacentHTML('beforeend',`<div class="src">${src.map(s=>`<span class="chip" data-pg="${s.page}" data-id="${s.id}">${esc(s.label)}</span>`).join('')}</div>`)}});
+  S.hist.push({role:'user',content:q},{role:'assistant',content:txt});S.busy=false};
+$('#chat').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;document.querySelector('[data-t=elements]').click();S.filter='all';S.q='';setTimeout(()=>{S.tab='elements';elements($('#pane'));const el=[...document.querySelectorAll('[data-ask]')].find(b=>b.dataset.ask==c.dataset.id);el&&el.closest('.card').scrollIntoView({block:'center'})},50)};
+$('#quit').onclick=async()=>{if(!confirm('Stop Axiom and close the server?'))return;await fetch('/api/shutdown',{method:'POST'}).catch(()=>{});document.body.innerHTML='<div class="empty" style="grid-column:1/-1">Axiom has stopped. You can close this tab.</div>'};
+health();refresh();setInterval(health,15000);
+</script></body></html>
