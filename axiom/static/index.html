@@ -2,11 +2,13 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Axiom</title>
 <style>
-:root{--bg:#e4e9f1;--panel:#e4e9f1;--ink:#2b3445;--mute:#7a869a;--line:#d3dae6;--acc:#5b5bf0;--acc2:#dfe3f7;--ok:#10a37f;--warn:#d97706;--hi:#ffffff;--lo:#b9c2d3;--r:20px}
-@media(prefers-color-scheme:dark){:root{--bg:#23272f;--panel:#23272f;--ink:#e6e9f0;--mute:#8d97aa;--line:#2f3541;--acc:#8b8bff;--acc2:#2c3040;--ok:#34d399;--warn:#fbbf24;--hi:#2d323c;--lo:#191c22}}
+:root{--bg:#e0e5ec;--panel:#e0e5ec;--ink:#2b3445;--mute:#6b7890;--line:#cdd5e0;--acc:#5b5bf0;--acc2:#dfe3f7;--ok:#10a37f;--warn:#d97706;--hi:#ffffff;--lo:#a3b1c6;--r:22px}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#2b2f38;--panel:#2b2f38;--ink:#e6e9f0;--mute:#98a2b5;--line:#3a404c;--acc:#9a9aff;--acc2:#343a4d;--ok:#34d399;--warn:#fbbf24;--hi:#3b414e;--lo:#16181d}}
+:root[data-theme=dark]{--bg:#2b2f38;--panel:#2b2f38;--ink:#e6e9f0;--mute:#98a2b5;--line:#3a404c;--acc:#9a9aff;--acc2:#343a4d;--ok:#34d399;--warn:#fbbf24;--hi:#3b414e;--lo:#16181d}
+:root[data-theme=light]{--bg:#e0e5ec;--panel:#e0e5ec;--ink:#2b3445;--mute:#6b7890;--line:#cdd5e0;--acc:#5b5bf0;--acc2:#dfe3f7;--ok:#10a37f;--warn:#d97706;--hi:#ffffff;--lo:#a3b1c6;--r:22px}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Segoe UI",Inter,system-ui,sans-serif;height:100vh;display:grid;grid-template-columns:250px 1fr 410px;gap:20px;padding:20px}
-aside,main,section{background:var(--panel);overflow:hidden;display:flex;flex-direction:column;min-height:0;border-radius:var(--r);box-shadow:9px 9px 18px var(--lo),-9px -9px 18px var(--hi)}
+aside,main,section{background:var(--panel);overflow:hidden;display:flex;flex-direction:column;min-height:0;border-radius:var(--r);box-shadow:12px 12px 24px var(--lo),-12px -12px 24px var(--hi)}
 h1{font-size:17px;margin:0;padding:20px 20px 2px;letter-spacing:.2px;font-weight:700}h1 b{background:linear-gradient(135deg,var(--acc),#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{padding:0 20px 8px;color:var(--mute);font-size:12px}
 #drop{margin:10px 16px;border-radius:16px;padding:20px 12px;text-align:center;color:var(--mute);cursor:pointer;box-shadow:inset 5px 5px 10px var(--lo),inset -5px -5px 10px var(--hi);transition:.2s}
@@ -24,8 +26,8 @@ h1{font-size:17px;margin:0;padding:20px 20px 2px;letter-spacing:.2px;font-weight
 .chip{padding:4px 13px;border-radius:99px;cursor:pointer;font-size:12px;color:var(--ink);transition:.15s;box-shadow:3px 3px 6px var(--lo),-3px -3px 6px var(--hi)}
 .chip.on{color:var(--acc);font-weight:600;box-shadow:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
 input.search{flex:1;min-width:120px;padding:8px 14px;border:0;border-radius:12px;background:var(--bg);color:var(--ink);outline:0;box-shadow:inset 4px 4px 8px var(--lo),inset -4px -4px 8px var(--hi)}
-.card{border-radius:18px;padding:16px;margin-bottom:20px;background:var(--panel);box-shadow:7px 7px 15px var(--lo),-7px -7px 15px var(--hi);transition:.2s}
-.card.sel{box-shadow:7px 7px 15px var(--lo),-7px -7px 15px var(--hi),0 0 0 2px var(--acc)}
+.card{border-radius:18px;padding:16px;margin-bottom:20px;background:var(--panel);box-shadow:9px 9px 18px var(--lo),-9px -9px 18px var(--hi);transition:.2s}
+.card.sel{box-shadow:9px 9px 18px var(--lo),-9px -9px 18px var(--hi),0 0 0 2px var(--acc)}
 .card .meta{display:flex;gap:10px;align-items:center;color:var(--mute);font-size:12px;margin-bottom:8px}
 .badge{padding:2px 10px;border-radius:99px;color:var(--acc);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;box-shadow:inset 2px 2px 5px var(--lo),inset -2px -2px 5px var(--hi)}
 .card img{max-width:100%;max-height:340px;border-radius:12px;display:block;margin:8px 0;background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
@@ -60,7 +62,7 @@ iframe{width:100%;height:100%;border:0;border-radius:14px}
   <input type="file" id="file" accept="application/pdf" hidden>
   <div class="bar" id="bar" style="display:none"><i></i></div><div class="sub" id="pmsg"></div>
   <div id="list"></div>
-  <div id="status"></div><button class="btn" id="quit" style="margin:8px 16px 16px;color:#e11d48">⏻ Quit Axiom</button>
+  <div id="status"></div><button class="btn" id="theme" style="margin:0 16px 4px">◐ Theme</button><button class="btn" id="quit" style="margin:8px 16px 16px;color:#e11d48">⏻ Quit Axiom</button>
 </aside>
 <main>
   <div class="tabs"><div class="tab on" data-t="summary">Summary</div><div class="tab" data-t="elements">Elements</div><div class="tab" data-t="pdf">PDF</div></div>
@@ -144,5 +146,7 @@ $('#ask').onsubmit=async e=>{e.preventDefault();const q=$('#q').value.trim();if(
   S.hist.push({role:'user',content:q},{role:'assistant',content:txt});S.busy=false};
 $('#chat').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;document.querySelector('[data-t=elements]').click();S.filter='all';S.q='';setTimeout(()=>{S.tab='elements';elements($('#pane'));const el=[...document.querySelectorAll('[data-ask]')].find(b=>b.dataset.ask==c.dataset.id);el&&el.closest('.card').scrollIntoView({block:'center'})},50)};
 $('#quit').onclick=async()=>{if(!confirm('Stop Axiom and close the server?'))return;await fetch('/api/shutdown',{method:'POST'}).catch(()=>{});document.body.innerHTML='<div class="empty" style="grid-column:1/-1">Axiom has stopped. You can close this tab.</div>'};
+(()=>{try{const t=localStorage.getItem('axiom-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}})();
+$('#theme').onclick=()=>{const d=document.documentElement,dark=d.dataset.theme?d.dataset.theme=='dark':matchMedia('(prefers-color-scheme:dark)').matches;d.dataset.theme=dark?'light':'dark';try{localStorage.setItem('axiom-theme',d.dataset.theme)}catch(e){}};
 health();refresh();setInterval(health,15000);
 </script></body></html>
